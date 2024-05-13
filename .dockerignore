@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.env
+albums/*
+tailwind.config.js
+readme.md
+Dockerfile
+.gitignore
+docker-compose.yml
+.DS_Store
+*/**/.DS_Store
