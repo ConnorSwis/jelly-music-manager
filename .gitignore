@@ -2,6 +2,5 @@
 __pycache__/
 .env
 albums/*
-tailwind.config.js
 */**/.DS_Store
 .DS_Store
