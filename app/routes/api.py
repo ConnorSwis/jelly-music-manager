@@ -84,7 +84,7 @@ def _download_album(url_or_album: Union[str, Album]):
         os.makedirs(album_dir, exist_ok=True)
         spotdl_file = re.sub(r'[^\w\-_\.]', '', name.replace(' ', '')) + '.spotdl'
         command = f"spotdl sync {url} --save-file {spotdl_file}"
-        process = subprocess.Popen(command.split(), cwd=album_dir)
+        process = subprocess.Popen(command.split(), cwd=album_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
         if process.returncode != 0:
             raise HTTPException(status_code=500, detail=stderr)
