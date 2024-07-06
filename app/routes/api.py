@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 import subprocess
@@ -11,13 +10,19 @@ from pydantic import BaseModel, HttpUrl, model_validator
 
 from app.models.spotify_types import Album, Artist, Playlist, Track
 
-log = logging.getLogger(__name__)
 
 api_router = APIRouter()
+
+tasks = []
+
+if not os.path.exists("music"):
+    os.mkdir("music")
+
 
 ############################## helper functions  ##############################
 def _clean_filename(s):
     return re.sub(r'[<>:"/\\|?*]', '', s)
+
 
 ############################### pydantic models ###############################
 class SpotifyURL(BaseModel):
@@ -33,7 +38,7 @@ class SpotifyURL(BaseModel):
             self.resource = parts[1]
         else:
             raise ValueError('Invalid Spotify URL or unrecognized resource type.')
-        self.url = clean_url
+        self.url = str(clean_url)
         return self
 
     @model_validator(mode='after')
@@ -47,24 +52,23 @@ class SpotifyURL(BaseModel):
 class AlbumDownload(BaseModel):
     urls: List[HttpUrl]
 
+
 ############################# download functions ##############################
 def _download_albums(album_urls: AlbumDownload):
     with Pool(processes=2) as pool:
         pool.map(_download_album, album_urls)
 
-
 def _create_m3u8(playlist):
     playlist, tracks = playlist
     m3u8_content = "#EXTM3U\n"
     m3u8_content += f"#SPOTIFY-ID:{playlist['id']}\n"
-    m3u8_content += "\n".join([f"{_clean_filename(track.album_name)}/{_clean_filename(track.name)}.mp3" for track in tracks])
+    m3u8_content += "\n".join([f"{_clean_filename(track['album_name'])}/{_clean_filename(track['name'])}.mp3" for track in tracks])
     m3u8_path = os.path.join("./music", f"{playlist['name']}.m3u8")
 
     with open(m3u8_path, "w") as m3u8_file:
         m3u8_file.write(m3u8_content)
 
     return playlist['name'], m3u8_path
-
 
 def _download_album(url_or_album: Union[str, Album]):
     if isinstance(url_or_album, str):
@@ -79,66 +83,61 @@ def _download_album(url_or_album: Union[str, Album]):
         album_dir = os.path.join(base_dir, name)
         os.makedirs(album_dir, exist_ok=True)
         spotdl_file = re.sub(r'[^\w\-_\.]', '', name.replace(' ', '')) + '.spotdl'
-        command = f"spotdl sync {url} --save-file {spotdl_file}".split()
-        result = subprocess.run(command, cwd=album_dir, text=True, capture_output=True)
-        if result.returncode != 0:
-            raise HTTPException(status_code=500, detail=result.stderr)
-        log.info(f"Downloaded {name} from {url}")
+        command = f"spotdl sync {url} --save-file {spotdl_file}"
+        process = subprocess.Popen(command.split(), cwd=album_dir)
+        stdout, stderr = process.communicate()
+        if process.returncode != 0:
+            raise HTTPException(status_code=500, detail=stderr)
     except Exception as e:
-        log.error(f"{type(e)} Error downloading {url}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to download {name} from {url}: {str(e)}")
 
-
-def _download(data, resource):
+def _download(data):
+    resource = data["resource"]
+    data = data["data"]
     match resource:
         case "album":
             _download_album(data)
         case "artist":
             _download_albums(data[0]['albums'])
         case "playlist":
-            _download_albums(data[0]['albums'])
             _create_m3u8(data)
+            _download_albums(data[0]['albums'])
         case "track":
             _download_album(data["album_url"])
+
+
+################################# controller #################################
+class SpotifyController:
+    @staticmethod
+    def query(spotify_url: SpotifyURL):
+        url = spotify_url.url
+        resource = spotify_url.resource
+        
+        DataClass = {'album': Album, 'artist': Artist, 'playlist': Playlist, 'track': Track}.get(resource)
+        if not DataClass:
+            raise HTTPException(status_code=400, detail="Unsupported Spotify content type")
+        try:
+            data = DataClass.get_metadata(url)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to fetch metadata: {str(e)}")
+
+        if resource == 'track':
+            resource = 'album'
+        return {"resource": resource, "data": data}
+    
+    @classmethod
+    def download(cls, spotify_url: SpotifyURL):
+        query = cls.query(spotify_url)
+        _download(query)
+        return query
+
 
 ################################## endpoints ##################################
 @api_router.get("/query/", summary="Retrieve Spotify content metadata based on URL")
 async def query(spotify_url: SpotifyURL = Depends()):
-    url_str = str(spotify_url.url)
-    resource = spotify_url.resource
-    metadata_func = {'album': Album, 'artist': Artist, 'playlist': Playlist, 'track': Track}.get(resource)
+    return SpotifyController.query(spotify_url)
 
-    if not metadata_func:
-        log.error(f"Unsupported Spotify content type from URL: {url_str}")
-        raise HTTPException(status_code=400, detail="Unsupported Spotify content type")
-
-    try:
-        metadata = metadata_func.get_metadata(url_str)
-    except Exception as e:
-        log.error(f"Failed to fetch metadata for {url_str}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch metadata: {str(e)}")
-
-    return {"resource": resource, "data": metadata}
-
-
-@api_router.get("/download/", summary="Download Spotify content based on URL")
-async def download(background_tasks: BackgroundTasks, spotify_url: SpotifyURL = Depends()):
-    url_str = str(spotify_url.url)
-    resource = spotify_url.resource
-    metadata_func = {'album': Album, 'artist': Artist, 'playlist': Playlist, 'track': Track}.get(resource)
-    
-    if not metadata_func:
-        raise HTTPException(status_code=400, detail="Invalid Spotify type")
-    
-    try:
-        data = metadata_func.get_metadata(url_str)
-    except Exception as e:
-        log.error(f"Error fetching metadata for {url_str}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch metadata: {str(e)}")
-
-    try:
-        background_tasks.add_task(_download, data, resource)
-    except Exception as e:
-        log.error(f"Error scheduling download task for {url_str}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to schedule download task: {str(e)}")
-
-    return {"resource": resource, "data": data}
+@api_router.get("/download/", summary="Download content based on Spotify URL")
+async def download(spotify_url: SpotifyURL = Depends()):
+    BackgroundTasks().add_task(SpotifyController.download(spotify_url))
+    return 

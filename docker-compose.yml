@@ -1,12 +1,10 @@
 version: "3.8"
 services:
-  fastapi-app:
+  app:
     build: .
     ports:
-      - "8000:80"
+      - "8000:8000"
     env_file:
       - .env
-      # SPOTIFY_ID
-      # SPOTIFY_SECRET
     volumes:
       - "./music:/app/music"

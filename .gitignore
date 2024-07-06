@@ -1,6 +1,6 @@
 .venv/
 __pycache__/
 .env
-albums/*
+music/*
 */**/.DS_Store
 .DS_Store

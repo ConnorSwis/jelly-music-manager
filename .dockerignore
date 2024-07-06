@@ -1,7 +1,7 @@
 .venv/
 __pycache__/
 .env
-albums/*
+music/*
 tailwind.config.js
 readme.md
 Dockerfile
@@ -10,3 +10,6 @@ docker-compose.yml
 .DS_Store
 */**/.DS_Store
 .env.example
+.github/
+.git/
+.dockerignore
