@@ -63,7 +63,7 @@ async function displayResource(url) {
 
 function display(responseContent) {
     if (!history.state || history.state.url !== responseContent.data[0].url) {
-        const newTitle = `${responseContent.data[0].name} | Music App`;
+        const newTitle = `${responseContent.data[0].name} | Jellyfin Music Manager`;
         history.pushState({ url: responseContent.data[0].url }, newTitle, `#${encodeURIComponent(responseContent.data[0].url)}`);
         document.title = newTitle;
     }
