@@ -5,3 +5,6 @@ albums/*
 tailwind.config.js
 */**/.DS_Store
 .DS_Store
+logs/*
+albums/*
+DS_Store/*

@@ -1,0 +1,28 @@
+{% if tracker is none or tracker is undefined %}
+<div class="flex flex-col w-full h-max" hx-get="/progress/?url={{ tracker_id }}" hx-trigger="every 1s"
+    hx-swap="outerHTML">
+</div>
+{%else%}
+<div class="flex flex-col w-full h-max" hx-get="/progress/?url={{ tracker.tracker_id }}" hx-trigger="every 1s"
+    hx-swap="outerHTML ">
+    <style>
+        progress[value]::-webkit-progress-bar {
+            background-color: #eee;
+        }
+    </style>
+    <div class="flex items-center gap-4 p-2 m-2 border border-white">
+
+        <img src="{{tracker.image_url}}" width="72" height="72" alt="Download"
+            style="aspect-ratio: 64 / 64; object-fit: cover;" />
+
+        <div class="flex-1">
+            <h3 class="text-2xl font-semibold leading-none tracking-tight whitespace-nowrap">{{tracker.name}}</h3>
+            <progress class="w-full h-2 mt-2 rounded-full " value="{{tracker.progress}}" max="100"></progress>
+            <div className="flex items-center justify-between text-sm">
+                <span>{{tracker.progress}}%</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endif %}

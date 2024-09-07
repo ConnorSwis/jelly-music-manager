@@ -1,0 +1,34 @@
+{#
+
+Variables:
+- title (str): Name of the album, artist, or playlist.
+- url (str): URL of the album, artist, or playlist.
+- image_url (str): URL of the image of the album, artist, or playlist.
+- subheading1 (str): First subheading of the album, artist, or playlist.
+- subheading2 (str): Second subheading of the album, artist, or playlist.
+
+Block:
+- details (str): HTML to display the details of the album, artist, or playlist.
+
+#}
+<input type="hidden" id="hidden-input" value="{{ url }}">
+<div class="grid grid-cols-3 gap-2 pt-3">
+    <div class="flex flex-col items-baseline justify-end h-full col-span-1">
+        <h1 class="text-3xl font-bold">{{ title }}</h1>
+        <p class="text-neutral-300">{{ subheading1 }}</p>
+        {% if subheading2 is defined %}
+        <p class="text-gray-500">{{ subheading2 }}</p>
+        {% endif %}
+    </div>
+    <div class="flex flex-col items-center col-span-1 gap-2 mt-2">
+        <div class="aspect-square">
+            <img src="{{ image_url }}" alt="{{ title }}" class="mx-auto min-h-64 max-h-[60dvw] md:max-h-[40dvw]">
+        </div>
+        <button class="w-full h-10 font-bold text-white rounded bg-emerald-600 hover:bg-emerald-700"
+            hx-post="/download/?url={{ url }}" hx-target="#progressDisplay" hx-swap="afterbegin"
+            hx-indicator="#loading">
+            Download
+        </button>
+    </div>
+    <div class="col-span-1"></div>
+</div>

@@ -1,12 +1,10 @@
-from spotdl.types.artist import Artist
-from spotdl.types.album import Album
+from ..context import logger
 from typing import Any, Dict, List, Tuple
-
-from spotdl.types.song import Song
 from spotdl import SpotifyClient
-from spotdl.types.playlist import Playlist as Playlist_
 from spotdl.types.album import Album as Album_
 from spotdl.types.artist import Artist as Artist_
+from spotdl.types.playlist import Playlist as Playlist_
+from spotdl.types.song import Song
 
 __all__ = ["Album", "Artist", "Playlist", "Track"]
 
@@ -32,20 +30,16 @@ class Artist(Artist_):
 
 class Playlist(Playlist_):
     @staticmethod
-    def get_metadata(url: str) -> Tuple[Dict[str, Any], List[Song]]:
+    def get_metadata(url: str):
         metadata, songs = Playlist_.get_metadata(url)
         metadata.update(spotify.playlist(url))
-
-        unique_song_ids = {}
-        for song in songs:
-            if song.song_id not in unique_song_ids:
-                unique_song_ids[song.song_id] = song
-        unique_songs = list(unique_song_ids.values())
-
-        return metadata, unique_songs
+        unique_song_ids = set(song.song_id for song in songs)
+        return metadata, songs, unique_song_ids
 
 
 class Track(Song):
     @staticmethod
-    def get_metadata(url):
-        return Song.from_url(url)
+    def get_metadata(url): 
+        song = Song.from_url(url)
+        metadata = spotify.track(url)
+        return metadata, song

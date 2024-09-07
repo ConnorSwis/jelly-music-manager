@@ -1,0 +1,17 @@
+<div id="tracksContainer" class="grid w-full grid-cols-4 overflow-y-auto">
+    {% for album in songs | songs_by_album %}
+    <div class="col-span-1 p-1 cursor-pointer">
+        <img src="{{ album.cover_url }}" alt="Album cover - {{ album.name }}" class="mx-auto aspect-square"
+            hx-get="/query?url=https://open.spotify.com/album/{{album.id}}" hx-trigger="click" hx-target="#infoDisplay"
+            hx-swap="innerHTML" hx-indicator="#loading">
+
+        <h3 class="text-lg leading-none mb-1 line-clamp-[2]"
+            hx-get="/query?url=https://open.spotify.com/album/{{album.id}}" hx-trigger="click" hx-target="#infoDisplay"
+            hx-swap="innerHTML" hx-indicator="#loading">{{album.name}}</h3>
+
+        <p class="text-xs">By <span class="cursor-pointer"
+                hx-get="/query?url=https://open.spotify.com/artist/{{album.artist_id}}" hx-trigger="click"
+                hx-target="#infoDisplay" hx-swap="innerHTML" hx-indicator="#loading">{{album.artist}}</span></p>
+    </div>
+    {% endfor %}
+</div>
