@@ -1,11 +1,10 @@
-import os as _os
-from typing import Any as _Any, Dict as _Dict, List as _List, Tuple as _Tuple
-
-from spotdl import SpotifyClient as _SpotifyClient
-from spotdl.types.album import Album as _Album
-from spotdl.types.artist import Artist as _Artist
-from spotdl.types.playlist import Playlist as _Playlist
-from spotdl.types.song import Song as _Song
+from ..context import logger
+from typing import Any, Dict, List, Tuple
+from spotdl import SpotifyClient
+from spotdl.types.album import Album as Album_
+from spotdl.types.artist import Artist as Artist_
+from spotdl.types.playlist import Playlist as Playlist_
+from spotdl.types.song import Song
 
 __all__ = ["Album", "Artist", "Playlist", "Track"]
 
@@ -49,22 +48,16 @@ class Artist(_Artist):
 
 class Playlist(_Playlist):
     @staticmethod
-    def get_metadata(url: str, attributes=_d) -> _Tuple[_Dict[str, _Any], _List[_Song]]:
-        metadata, songs = _Playlist.get_metadata(url)
-        metadata.update(_spotify.playlist(url))
-        metadata["albums"] = set("https://open.spotify.com/album/"+song.album_id for song in songs)
-        unique_song_ids = {}
-        for song in songs:
-            if song.song_id not in unique_song_ids:
-                unique_song_ids[song.song_id] = song
-        unique_songs = list(unique_song_ids.values())
-        metadata["total_duration"] = _duration(songs)
-        metadata["tracks"] = len(songs)
-        return metadata, _filter_song_attributes(unique_songs, attributes=attributes)
+    def get_metadata(url: str):
+        metadata, songs = Playlist_.get_metadata(url)
+        metadata.update(spotify.playlist(url))
+        unique_song_ids = set(song.song_id for song in songs)
+        return metadata, songs, unique_song_ids
 
 
 class Track(_Song):
     @staticmethod
-    def get_metadata(url: str, attributes=_d) :
-        song = _Song.from_url(url)
-        return Album.get_metadata("https://open.spotify.com/album/" + song.album_id, attributes=attributes)
+    def get_metadata(url): 
+        song = Song.from_url(url)
+        metadata = spotify.track(url)
+        return metadata, song

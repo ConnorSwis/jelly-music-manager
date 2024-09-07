@@ -1,0 +1,47 @@
+<input type="hidden" id="hidden-input" value="{{ album.url }}" />
+{% set artist_span = '<span class="cursor-pointer"
+    hx-get="/query/?url=https://open.spotify.com/artist/'~album.artist.id~'" hx-trigger="click" hx-target="#infoDisplay"
+    hx-indicator="#loading">' ~ album.artist.name ~ '</span>' %}
+{% with title=album.name,
+subheading1="by " ~ (artist_span | safe) ~ " · " ~ album.release_date[:4],
+subheading2=(songs | length) ~ " tracks",
+url=album.url,
+image_url=album.images[0].url
+%}
+{% include "components/info_header.jinja" %}
+{% endwith %}
+
+
+<div id="tracksContainerHeader" class="grid w-full grid-cols-10 mt-3 text-lg font-semibold">
+    <div class="h-8 col-span-1 py-1 text-center">#</div>
+    <div class="h-8 col-span-5 px-1 py-1">Track</div>
+    <div class="h-8 col-span-3 px-1 py-1">Artist(s)</div>
+    <div class="flex items-center justify-center w-full h-8 col-span-1 px-1 py-1 text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+            <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v6l5.25 3.15.75-1.23-4.5-2.67V7z" />
+        </svg>
+    </div>
+</div>
+<div id="tracksContainer" class="grid w-full grid-cols-10 overflow-y-auto">
+    {% for song in songs %} {% set row_class = '' if loop.index is even else 'bg-white bg-opacity-20' %}
+
+    <div class="h-8 col-span-1 py-1 text-center truncate {{ row_class }}">
+        {{ loop.index }}
+    </div>
+
+    <div class="h-8 col-span-5 px-1 py-1 truncate {{ row_class }}">
+        {{ song.name }}
+    </div>
+    <div class="h-8 col-span-3 px-1 py-1 text-left truncate {{ row_class }}">
+        {% for artist in song.artists %}
+        <span class="cursor-pointer" hx-get="/query/?url=https://open.spotify.com/artist/{{ artist.id }}"
+            hx-trigger="click" hx-target="#infoDisplay" hx-swap="innerHTML" hx-indicator="#loading">{{ artist.name
+            }}</span>{% if not loop.last %}, {% endif %} {% endfor %}
+    </div>
+
+    <div class="h-8 col-span-1 px-1 py-1 text-center truncate {{ row_class }}">
+        {{ song.duration_ms | format_duration_ms }}
+    </div>
+    {% endfor %}
+</div>

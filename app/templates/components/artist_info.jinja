@@ -1,0 +1,12 @@
+<input type="hidden" id="hidden-input" value="{{ artist.url }}" />
+
+{% with title=artist.name,
+image_url=artist.images[1].url,
+subheading1=(artist.followers.total | comma_separated) ~ " followers",
+subheading2=(artist.albums | length | string) ~ " albums",
+url=artist.url %}
+{% include "components/info_header.jinja" %}
+{% endwith %}
+
+
+{% include "components/albums_container.jinja" %}

@@ -3,8 +3,9 @@ services:
   app:
     build: .
     ports:
-      - "8000:8000"
+      - "8000:80"
     env_file:
       - .env
     volumes:
-      - "./music:/app/music"
+      - "./albums:/music:rw"
+      - "./logs:/logs:rw"
