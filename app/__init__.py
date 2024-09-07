@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, Response
 from .context import *
 from .routes.api import router as api_router
 
@@ -20,7 +20,7 @@ async def read_index():
 
 @app.get("/health")
 async def read_health():
-    return {"status": "ok"}
+    return Response(status_code=200)
 
 @app.get("/favicon.ico")
 async def read_favicon():

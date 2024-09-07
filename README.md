@@ -32,7 +32,7 @@ SPOTIFY_SECRET=your_spotify_client_secret
 Run the Docker container with the necessary environment variables and volume bindings:
 
 ```bash
-docker run -d -p 8000:8000 --env-file .env -v /path/to/your/jellyfin/music/folder:/app/music connorswislow/jellyfin-music-manager
+docker run -d -p 8000:80 --env-file .env -v /path/to/your/jellyfin/music/folder:/app/music connorswislow/jellyfin-music-manager
 ```
 
 Replace `/path/to/your/jellyfin/music/folder` with the actual path to your Jellyfin music folder.
