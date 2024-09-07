@@ -76,7 +76,7 @@ spotify_options: SpotifyOptions = {
     "client_secret": os.getenv("SPOTIFY_SECRET"),
     "headless": True,
 }
-assert spotify_options["client_id"] and spotify_options["client_secret"], "Spotify client ID and secret must be set"
+assert os.getenv("SPOTIFY_ID") and os.getenv("SPOTIFY_SECRET"), "Spotify client ID and secret must be set"
 
 try:
     spotify: SpotifyClient = SpotifyClient.init(**spotify_options)
