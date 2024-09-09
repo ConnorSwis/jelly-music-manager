@@ -323,7 +323,6 @@ def download_artist_from_url(url):
 
 def download_playlist_from_url(url):
     playlist_metadata, songs = Playlist.get_metadata(url)
-    logger.info(playlist_metadata)
     download_playlist(playlist_metadata, songs)
 
 
