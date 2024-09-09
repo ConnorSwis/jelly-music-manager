@@ -47,6 +47,7 @@ def initialize_logger():
         if isinstance(logger, logging.Logger):
             logger.setLevel(logging.DEBUG)
             logger.addHandler(file_handler)
+            logger.addHandler(console_handler)
             logger.propagate = False
 
     master_logger.info("Logger initialized.")
@@ -56,6 +57,14 @@ def initialize_logger():
 
 def get_music_dir():
     return Path(os.environ.get("MUSIC_DIR", "/music")).absolute()
+
+
+def get_playlists_dir():
+    return Path(os.environ.get("PLAYLISTS_DIR", "/playlists")).absolute()
+
+
+def get_host_music_dir():
+    return Path(os.environ.get("HOST_MUSIC_DIR", "/music")).absolute()
 
 
 def get_logs_dir():
@@ -76,7 +85,8 @@ spotify_options: SpotifyOptions = {
     "client_secret": os.getenv("SPOTIFY_SECRET"),
     "headless": True,
 }
-assert os.getenv("SPOTIFY_ID") and os.getenv("SPOTIFY_SECRET"), "Spotify client ID and secret must be set"
+assert os.getenv("SPOTIFY_ID") and os.getenv(
+    "SPOTIFY_SECRET"), "Spotify client ID and secret must be set"
 
 try:
     spotify: SpotifyClient = SpotifyClient.init(**spotify_options)
@@ -86,6 +96,7 @@ except Exception as e:
     raise
 
 __music_dir = get_music_dir()
+__playlist_dir = get_playlists_dir()
 try:
     if not __music_dir.exists():
         logger.debug(
@@ -96,10 +107,18 @@ try:
         logger.error(f"Cannot write to __music_dir: {__music_dir}")
         raise PermissionError(f"Cannot write to __music_dir: {__music_dir}")
 
+    if not __playlist_dir.exists():
+        logger.debug(
+            f"__playlist_dir does not exist. Creating directory: {__playlist_dir}")
+        __playlist_dir.mkdir(parents=True, exist_ok=True)
+
+    if not os.access(__playlist_dir, os.W_OK):
+        logger.error(f"Cannot write to __playlist_dir: {__playlist_dir}")
+        raise PermissionError(
+            f"Cannot write to __playlist_dir: {__playlist_dir}")
+
     logger.debug(f"__music_dir is ready and writable: {__music_dir}")
-except PermissionError as pe:
-    logger.critical(f"Permission error: {pe}")
-    raise
+
 except Exception as e:
-    logger.critical(f"Failed to prepare MUSIC_DIR: {e}")
+    logger.critical(f"Failed to prepare music dir or playlist dir: {e}")
     raise

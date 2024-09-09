@@ -8,10 +8,13 @@ from spotdl.download.progress_handler import SongTracker
 from spotdl.download.downloader import Downloader as Downloader_
 from spotdl.types.options import DownloaderOptionalOptions, DownloaderOptions
 from spotdl.download.progress_handler import ProgressHandler as ProgressHandler_
+import xml.etree.ElementTree as ET
+from datetime import datetime
+
 
 from .progress_tracker import ProgressTracker
 from .create_arguments import create_arguments
-from ..context import get_music_dir, clean
+from ..context import get_music_dir, clean, get_host_music_dir, get_playlists_dir
 
 import os
 import logging
@@ -19,7 +22,9 @@ from pathlib import Path
 from asyncio import AbstractEventLoop
 from typing import Any, Dict, List, Tuple, Callable, Type, TypeVar, cast
 from urllib.parse import urlparse, urlunparse
+from urllib.request import urlretrieve
 from dataclasses import dataclass, fields, is_dataclass
+import requests
 
 
 logger = logging.getLogger("master")
@@ -60,6 +65,18 @@ def get_album_dir(album_name: str, artist_name: str) -> Path:
 
     album_dir = (
         get_music_dir()
+        .joinpath(f"{clean(artist_name)} - {clean(album_name)}")
+        .absolute()
+    )
+    return album_dir
+
+
+def get_host_album_dir(album_name: str, artist_name: str) -> Path:
+    assert isinstance(album_name, str), "album_name should be a string"
+    assert isinstance(artist_name, str), "artist_name should be a string"
+
+    album_dir = (
+        get_host_music_dir()
         .joinpath(f"{clean(artist_name)} - {clean(album_name)}")
         .absolute()
     )
@@ -109,7 +126,7 @@ def validate_url(url: str) -> Tuple[str, str | bool]:
 
 
 def download_album(album: Album, progress_tracker: ProgressTracker):
-    logger.info(f"Starting download for album: {album}")
+    logger.info(f"Starting download for album: {album.name}")
     try:
         assert isinstance(album, Album), "album should be an instance of Album"
         if not album.songs:
@@ -196,7 +213,9 @@ def download_playlist(
         playlist_metadata = verify_dataclass(
             playlist_metadata, _DownloadPlaylist_PlaylistMetadata
         )
-        create_m3u8(playlist_metadata, songs)
+
+        create_xml(playlist_metadata, songs)
+
         album_ids = {song.album_id for song in songs}
         progress_tracker = ProgressTracker(
             playlist_metadata.url,
@@ -220,6 +239,22 @@ def download_playlist(
     except Exception as e:
         logger.error(f"Failed to download playlist: {e}")
         raise
+
+
+def download_image(url, save_path):
+    try:
+        logger.debug(f"Downloading image from URL: {url}")
+        response = requests.get(url, stream=True, verify=False)
+        response.raise_for_status()
+
+        with open(save_path, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+
+        logger.debug(f"Image successfully downloaded to {save_path}")
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error downloading the image: {e}")
 
 
 def download(
@@ -294,6 +329,58 @@ def create_m3u8(playlist_metadata: _CreateM3U8PlaylistMetadata, songs: List[Song
         raise
     except Exception as e:
         logger.error(f"Failed to create m3u8 file: {e}")
+        raise
+
+
+def create_xml(playlist_metadata: _CreateM3U8PlaylistMetadata, songs: List[Song]):
+    logger.debug("Creating XML playlist file.")
+    try:
+        playlist_metadata = verify_dataclass(
+            playlist_metadata, _CreateM3U8PlaylistMetadata)
+        root = ET.Element("Item")
+
+        added = ET.SubElement(root, "Added")
+        added.text = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        lock_data = ET.SubElement(root, "LockData")
+        lock_data.text = "false"
+
+        local_title = ET.SubElement(root, "LocalTitle")
+        local_title.text = clean(playlist_metadata.name)
+
+        running_time = ET.SubElement(root, "RunningTime")
+        running_time.text = str(sum(song.duration for song in songs))
+
+        playlist_items = ET.SubElement(root, "PlaylistItems")
+
+        for song in songs:
+            playlist_item = ET.SubElement(playlist_items, "PlaylistItem")
+            song_path = ET.SubElement(playlist_item, "Path")
+
+            album_dir = get_host_album_dir(song.album_name, song.artist)
+            song_path.text = str(album_dir.joinpath(
+                f"{song.track_number} - {clean(song.name)}.{get_music_format()}"))
+
+        xml_content = ET.tostring(root, encoding='unicode', method='xml')
+
+        xml_path = get_playlists_dir().joinpath(
+            f"{clean(playlist_metadata.name)}")
+
+        xml_path.mkdir(parents=True, exist_ok=True)
+
+        with open(xml_path.joinpath(f"{clean(playlist_metadata.name)}.xml"), "w", encoding="utf-8") as xml_file:
+            xml_file.write(xml_content)
+
+        download_image(playlist_metadata.cover_url,
+                       str(xml_path.joinpath("folder.jpg").absolute()))
+
+        logger.debug(f"XML file created: {xml_path}")
+
+    except ValueError as ve:
+        logger.error(f"Value error: {ve}")
+        raise
+    except Exception as e:
+        logger.error(f"Failed to create XML file: {e}")
         raise
 
 
