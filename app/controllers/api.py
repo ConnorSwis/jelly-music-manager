@@ -146,7 +146,7 @@ class APIController:
         progress_trackers = get_progress_trackers_state()
         tracker = None
         for t in progress_trackers:
-            logger.info(t["tracker_id"] + " " + url)
+            logger.debug(t["tracker_id"] + " " + url)
             if t['tracker_id'] == url:
                 tracker = t
                 return templates.TemplateResponse(
