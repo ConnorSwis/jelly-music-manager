@@ -125,6 +125,7 @@ class APIController:
             case "track":
                 metadata = get_metadata(
                     f"https://open.spotify.com/album/{metadata[1].album_id}", "album")
+                valid = "album"
         return templates.TemplateResponse(
             f"components/{valid}_info.jinja", {"request": request,
                                                valid: metadata[0], "songs": metadata[1]}
