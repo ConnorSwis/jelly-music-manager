@@ -123,7 +123,6 @@ class APIController:
             case "artist":
                 metadata = [metadata[0], Artist_.from_url(url).songs]
             case "track":
-                print("track")
                 metadata = list(get_metadata(
                     f"https://open.spotify.com/album/{metadata[1].album_id}", (valid := "album")))
                 metadata[1] = metadata[0]["tracks"]["items"]
